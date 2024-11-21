@@ -1,0 +1,153 @@
+import mysql.connector
+from mysql.connector import Error
+
+def conectar():
+    """Establece la conexión con la base de datos."""
+    try:
+        conexion = mysql.connector.connect(
+            host="localhost",
+            user="tu_usuario",
+            password="tu_contraseña",
+            database="delivery_system"
+        )
+        if conexion.is_connected():
+            return conexion
+    except Error as e:
+        print(f"Error al conectar a la base de datos: {e}")
+        return None
+
+
+def listar(tabla):
+    """Lista los registros de una tabla."""
+    conexion = conectar()
+    if conexion:
+        try:
+            cursor = conexion.cursor(dictionary=True)
+            cursor.execute(f"SELECT * FROM {tabla}")
+            registros = cursor.fetchall()
+            for registro in registros:
+                print(registro)
+        except Error as e:
+            print(f"Error al listar registros: {e}")
+        finally:
+            conexion.close()
+
+
+def agregar(tabla, datos):
+    """Agrega un registro a una tabla."""
+    conexion = conectar()
+    if conexion:
+        try:
+            cursor = conexion.cursor()
+            if tabla == "repartidores":
+                cursor.execute("INSERT INTO repartidores (nombre, telefono, estado) VALUES (%s, %s, %s)", datos)
+            elif tabla == "productos":
+                cursor.execute("INSERT INTO productos (nombre, precio, stock) VALUES (%s, %s, %s)", datos)
+            conexion.commit()
+            print("Registro agregado exitosamente.")
+        except Error as e:
+            print(f"Error al agregar registro: {e}")
+        finally:
+            conexion.close()
+
+
+def actualizar(tabla, id, datos):
+    """Actualiza un registro de una tabla."""
+    conexion = conectar()
+    if conexion:
+        try:
+            cursor = conexion.cursor()
+            if tabla == "repartidores":
+                cursor.execute("UPDATE repartidores SET nombre=%s, telefono=%s, estado=%s WHERE id=%s", datos + (id,))
+            elif tabla == "productos":
+                cursor.execute("UPDATE productos SET nombre=%s, precio=%s, stock=%s WHERE id=%s", datos + (id,))
+            conexion.commit()
+            print("Registro actualizado exitosamente.")
+        except Error as e:
+            print(f"Error al actualizar registro: {e}")
+        finally:
+            conexion.close()
+
+
+def eliminar(tabla, id):
+    """Elimina un registro de una tabla."""
+    conexion = conectar()
+    if conexion:
+        try:
+            cursor = conexion.cursor()
+            cursor.execute(f"DELETE FROM {tabla} WHERE id=%s", (id,))
+            conexion.commit()
+            print("Registro eliminado exitosamente.")
+        except Error as e:
+            print(f"Error al eliminar registro: {e}")
+        finally:
+            conexion.close()
+
+
+def menu():
+    """Interfaz de usuario en consola."""
+    while True:
+        print("\n--- Sistema de Gestión de Delivery ---")
+        print("1. Gestionar Repartidores")
+        print("2. Gestionar Productos")
+        print("3. Salir")
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            gestionar("repartidores")
+        elif opcion == "2":
+            gestionar("productos")
+        elif opcion == "3":
+            print("¡Hasta luego!")
+            break
+        else:
+            print("Opción no válida, intente nuevamente.")
+
+
+def gestionar(tabla):
+    """Gestión de repartidores o productos."""
+    while True:
+        print(f"\n--- Gestión de {tabla.capitalize()} ---")
+        print("1. Listar")
+        print("2. Agregar")
+        print("3. Actualizar")
+        print("4. Eliminar")
+        print("5. Volver")
+        opcion = input("Seleccione una opción: ")
+
+        if opcion == "1":
+            listar(tabla)
+        elif opcion == "2":
+            if tabla == "repartidores":
+                nombre = input("Nombre: ")
+                telefono = input("Teléfono: ")
+                estado = input("Estado (activo/inactivo): ")
+                agregar(tabla, (nombre, telefono, estado))
+            elif tabla == "productos":
+                nombre = input("Nombre: ")
+                precio = float(input("Precio: "))
+                stock = int(input("Stock: "))
+                agregar(tabla, (nombre, precio, stock))
+        elif opcion == "3":
+            id = int(input("ID del registro a actualizar: "))
+            if tabla == "repartidores":
+                nombre = input("Nombre: ")
+                telefono = input("Teléfono: ")
+                estado = input("Estado (activo/inactivo): ")
+                actualizar(tabla, id, (nombre, telefono, estado))
+            elif tabla == "productos":
+                nombre = input("Nombre: ")
+                precio = float(input("Precio: "))
+                stock = int(input("Stock: "))
+                actualizar(tabla, id, (nombre, precio, stock))
+        elif opcion == "4":
+            id = int(input("ID del registro a eliminar: "))
+            eliminar(tabla, id)
+        elif opcion == "5":
+            break
+        else:
+            print("Opción no válida, intente nuevamente.")
+
+
+if __name__ == "__main__":
+    menu()
