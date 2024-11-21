@@ -1,153 +1,201 @@
 import mysql.connector
 from mysql.connector import Error
 
-def conectar():
-    """Establece la conexión con la base de datos."""
-    try:
-        conexion = mysql.connector.connect(
-            host="localhost",
-            user="tu_usuario",
-            password="tu_contraseña",
-            database="delivery_system"
-        )
-        if conexion.is_connected():
-            return conexion
-    except Error as e:
-        print(f"Error al conectar a la base de datos: {e}")
-        return None
 
+class DatabaseConnection:
+    def __init__(self, host="localhost", database="delivery_app", user="root", password=""):
+        self.host = host
+        self.database = database
+        self.user = user
+        self.password = password
+        self.connection = None
 
-def listar(tabla):
-    """Lista los registros de una tabla."""
-    conexion = conectar()
-    if conexion:
+    def connect(self):
         try:
-            cursor = conexion.cursor(dictionary=True)
-            cursor.execute(f"SELECT * FROM {tabla}")
-            registros = cursor.fetchall()
-            for registro in registros:
-                print(registro)
+            self.connection = mysql.connector.connect(
+                host=self.host,
+                database=self.database,
+                user=self.user,
+                password=self.password
+            )
+            if self.connection.is_connected():
+                print("Conexión exitosa a la base de datos.")
         except Error as e:
-            print(f"Error al listar registros: {e}")
-        finally:
-            conexion.close()
+            print(f"Error al conectar a la base de datos: {e}")
+
+    def disconnect(self):
+        if self.connection.is_connected():
+            self.connection.close()
+            print("Conexión cerrada.")
 
 
-def agregar(tabla, datos):
-    """Agrega un registro a una tabla."""
-    conexion = conectar()
-    if conexion:
+class RepartidorOperaciones:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def agregar(self, nombre, telefono):
         try:
-            cursor = conexion.cursor()
-            if tabla == "repartidores":
-                cursor.execute("INSERT INTO repartidores (nombre, telefono, estado) VALUES (%s, %s, %s)", datos)
-            elif tabla == "productos":
-                cursor.execute("INSERT INTO productos (nombre, precio, stock) VALUES (%s, %s, %s)", datos)
-            conexion.commit()
-            print("Registro agregado exitosamente.")
+            cursor = self.connection.cursor()
+            cursor.execute("INSERT INTO repartidores (nombre, telefono) VALUES (%s, %s)", (nombre, telefono))
+            self.connection.commit()
+            print("Repartidor agregado correctamente.")
         except Error as e:
-            print(f"Error al agregar registro: {e}")
-        finally:
-            conexion.close()
+            print(f"Error al agregar repartidor: {e}")
 
-
-def actualizar(tabla, id, datos):
-    """Actualiza un registro de una tabla."""
-    conexion = conectar()
-    if conexion:
+    def listar(self):
         try:
-            cursor = conexion.cursor()
-            if tabla == "repartidores":
-                cursor.execute("UPDATE repartidores SET nombre=%s, telefono=%s, estado=%s WHERE id=%s", datos + (id,))
-            elif tabla == "productos":
-                cursor.execute("UPDATE productos SET nombre=%s, precio=%s, stock=%s WHERE id=%s", datos + (id,))
-            conexion.commit()
-            print("Registro actualizado exitosamente.")
+            cursor = self.connection.cursor()
+            cursor.execute("SELECT * FROM repartidores")
+            repartidores = cursor.fetchall()
+            if repartidores:
+                for repartidor in repartidores:
+                    print(f"ID: {repartidor[0]}, Nombre: {repartidor[1]}, Teléfono: {repartidor[2]}")
+            else:
+                print("No hay repartidores registrados.")
         except Error as e:
-            print(f"Error al actualizar registro: {e}")
-        finally:
-            conexion.close()
+            print(f"Error al listar repartidores: {e}")
 
-
-def eliminar(tabla, id):
-    """Elimina un registro de una tabla."""
-    conexion = conectar()
-    if conexion:
+    def actualizar(self, id, nombre, telefono):
         try:
-            cursor = conexion.cursor()
-            cursor.execute(f"DELETE FROM {tabla} WHERE id=%s", (id,))
-            conexion.commit()
-            print("Registro eliminado exitosamente.")
+            cursor = self.connection.cursor()
+            cursor.execute("UPDATE repartidores SET nombre=%s, telefono=%s WHERE id=%s", (nombre, telefono, id))
+            self.connection.commit()
+            print("Repartidor actualizado correctamente.")
         except Error as e:
-            print(f"Error al eliminar registro: {e}")
-        finally:
-            conexion.close()
+            print(f"Error al actualizar repartidor: {e}")
+
+    def eliminar(self, id):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM repartidores WHERE id=%s", (id,))
+            self.connection.commit()
+            print("Repartidor eliminado correctamente.")
+        except Error as e:
+            print(f"Error al eliminar repartidor: {e}")
 
 
-def menu():
-    """Interfaz de usuario en consola."""
+class ProductoOperaciones:
+    def __init__(self, connection):
+        self.connection = connection
+
+    def agregar(self, nombre, descripcion, precio):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(
+                "INSERT INTO productos (nombre, descripcion, precio) VALUES (%s, %s, %s)",
+                (nombre, descripcion, precio),
+            )
+            self.connection.commit()
+            print("Producto agregado correctamente.")
+        except Error as e:
+            print(f"Error al agregar producto: {e}")
+
+    def listar(self):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("SELECT * FROM productos")
+            productos = cursor.fetchall()
+            if productos:
+                for producto in productos:
+                    print(f"ID: {producto[0]}, Nombre: {producto[1]}, Descripción: {producto[2]}, Precio: {producto[3]}")
+            else:
+                print("No hay productos registrados.")
+        except Error as e:
+            print(f"Error al listar productos: {e}")
+
+    def actualizar(self, id, nombre, descripcion, precio):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute(
+                "UPDATE productos SET nombre=%s, descripcion=%s, precio=%s WHERE id=%s",
+                (nombre, descripcion, precio, id),
+            )
+            self.connection.commit()
+            print("Producto actualizado correctamente.")
+        except Error as e:
+            print(f"Error al actualizar producto: {e}")
+
+    def eliminar(self, id):
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute("DELETE FROM productos WHERE id=%s", (id,))
+            self.connection.commit()
+            print("Producto eliminado correctamente.")
+        except Error as e:
+            print(f"Error al eliminar producto: {e}")
+
+
+def main():
+    db = DatabaseConnection()
+    db.connect()
+
+    repartidor_ops = RepartidorOperaciones(db.connection)
+    producto_ops = ProductoOperaciones(db.connection)
+
     while True:
-        print("\n--- Sistema de Gestión de Delivery ---")
-        print("1. Gestionar Repartidores")
-        print("2. Gestionar Productos")
+        print("\n=== Menú Principal ===")
+        print("1. Gestión de repartidores")
+        print("2. Gestión de productos")
         print("3. Salir")
-        opcion = input("Seleccione una opción: ")
+        opcion = input("Seleccione una opción: ").strip()
 
         if opcion == "1":
-            gestionar("repartidores")
+            print("\n=== Gestión de Repartidores ===")
+            print("1. Agregar repartidor")
+            print("2. Listar repartidores")
+            print("3. Actualizar repartidor")
+            print("4. Eliminar repartidor")
+            sub_opcion = input("Seleccione una opción: ").strip()
+
+            if sub_opcion == "1":
+                nombre = input("Nombre: ").strip()
+                telefono = input("Teléfono: ").strip()
+                repartidor_ops.agregar(nombre, telefono)
+            elif sub_opcion == "2":
+                repartidor_ops.listar()
+            elif sub_opcion == "3":
+                id = input("ID del repartidor: ").strip()
+                nombre = input("Nuevo nombre: ").strip()
+                telefono = input("Nuevo teléfono: ").strip()
+                repartidor_ops.actualizar(id, nombre, telefono)
+            elif sub_opcion == "4":
+                id = input("ID del repartidor a eliminar: ").strip()
+                repartidor_ops.eliminar(id)
+
         elif opcion == "2":
-            gestionar("productos")
+            print("\n=== Gestión de Productos ===")
+            print("1. Agregar producto")
+            print("2. Listar productos")
+            print("3. Actualizar producto")
+            print("4. Eliminar producto")
+            sub_opcion = input("Seleccione una opción: ").strip()
+
+            if sub_opcion == "1":
+                nombre = input("Nombre: ").strip()
+                descripcion = input("Descripción: ").strip()
+                precio = input("Precio: ").strip()
+                producto_ops.agregar(nombre, descripcion, precio)
+            elif sub_opcion == "2":
+                producto_ops.listar()
+            elif sub_opcion == "3":
+                id = input("ID del producto: ").strip()
+                nombre = input("Nuevo nombre: ").strip()
+                descripcion = input("Nueva descripción: ").strip()
+                precio = input("Nuevo precio: ").strip()
+                producto_ops.actualizar(id, nombre, descripcion, precio)
+            elif sub_opcion == "4":
+                id = input("ID del producto a eliminar: ").strip()
+                producto_ops.eliminar(id)
+
         elif opcion == "3":
-            print("¡Hasta luego!")
+            print("\n¡Hasta luego!")
             break
+
         else:
-            print("Opción no válida, intente nuevamente.")
+            print("Opción no válida. Intente nuevamente.")
 
-
-def gestionar(tabla):
-    """Gestión de repartidores o productos."""
-    while True:
-        print(f"\n--- Gestión de {tabla.capitalize()} ---")
-        print("1. Listar")
-        print("2. Agregar")
-        print("3. Actualizar")
-        print("4. Eliminar")
-        print("5. Volver")
-        opcion = input("Seleccione una opción: ")
-
-        if opcion == "1":
-            listar(tabla)
-        elif opcion == "2":
-            if tabla == "repartidores":
-                nombre = input("Nombre: ")
-                telefono = input("Teléfono: ")
-                estado = input("Estado (activo/inactivo): ")
-                agregar(tabla, (nombre, telefono, estado))
-            elif tabla == "productos":
-                nombre = input("Nombre: ")
-                precio = float(input("Precio: "))
-                stock = int(input("Stock: "))
-                agregar(tabla, (nombre, precio, stock))
-        elif opcion == "3":
-            id = int(input("ID del registro a actualizar: "))
-            if tabla == "repartidores":
-                nombre = input("Nombre: ")
-                telefono = input("Teléfono: ")
-                estado = input("Estado (activo/inactivo): ")
-                actualizar(tabla, id, (nombre, telefono, estado))
-            elif tabla == "productos":
-                nombre = input("Nombre: ")
-                precio = float(input("Precio: "))
-                stock = int(input("Stock: "))
-                actualizar(tabla, id, (nombre, precio, stock))
-        elif opcion == "4":
-            id = int(input("ID del registro a eliminar: "))
-            eliminar(tabla, id)
-        elif opcion == "5":
-            break
-        else:
-            print("Opción no válida, intente nuevamente.")
+    db.disconnect()
 
 
 if __name__ == "__main__":
-    menu()
+    main()
